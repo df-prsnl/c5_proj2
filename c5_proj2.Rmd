@@ -1,0 +1,125 @@
+# Data Analysis of U.S. National Oceanic and Atmospheric Administration's (NOAA) Storm Database
+
+## Analysis designed in order to find the most Harmful Weather Events to Population's Health and Economics
+
+## Downloading and reading the data file
+
+```{r}
+# creating "data" directory
+if (!file.exists("data")) {
+  dir.create("data")
+}
+
+url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+
+# dowloading the zip file
+download.file(url, destfile = "./data/storm_data.csv.bz2", mode = "wb")
+
+# reading the csv file
+data <- read.csv(bzfile("./data/storm_data.csv.bz2"), stringsAsFactors = FALSE)
+```
+
+## Data analysis with respect to the most harmful events to population health
+
+### Creating one new data frame with types of events ordered by fatalities and other ordered by injuries
+
+```{r}
+health <- data[,c("EVTYPE", "FATALITIES", "INJURIES")]
+
+health_summary <- aggregate(
+  cbind(FATALITIES, INJURIES) ~ EVTYPE,
+  data = health,
+  FUN = sum
+)
+
+health_fatalities <- health_summary[order(-health_summary$FATALITIES), ]
+health_injuries <- health_summary[order(-health_summary$INJURIES), ]
+```
+
+### Creating a plot of the 10 most harmful events based on fatalities
+
+```{r}
+x1 <- health_fatalities$EVTYPE[1:10]
+y1 <- health_fatalities$FATALITIES[1:10]
+
+barplot(
+  y1,
+  names.arg = x1,
+  las = 2,
+  cex.names = 0.7,
+  ylab = "Number of Fatalities",
+  main = "Top 10 Events by Number of Fatalities",
+  col = "red"
+)
+```
+
+#### Therefore, "TORNADO" is the most harmful event to population health based on fatalities
+
+### Creating a plot of the 10 most harmful events based on injuries
+
+```{r}
+x2 <- health_injuries$EVTYPE[1:10]
+y2 <- health_injuries$INJURIES[1:10]
+
+barplot(
+  y2,
+  names.arg = x2,
+  las = 2,
+  cex.names = 0.7,
+  ylab = "Number of Injuries",
+  main = "Top 10 Events by Number of Injuries",
+  col = "orange"
+)
+```
+
+#### Hence, "TORNADO" is, also, the most harmful event to population health based on injuries
+
+## Data analysis with respect to the most harmful events to economics
+
+### Creating one new data frame with types of events ordered by properties and crops damage in dollars
+
+```{r}
+econ <- data[, c("EVTYPE", "PROPDMG", "PROPDMGEXP", "CROPDMG", "CROPDMGEXP")]
+
+econ$PROP_MULT <- 1
+econ$PROP_MULT[econ$PROPDMGEXP == "K"] <- 10^3
+econ$PROP_MULT[econ$PROPDMGEXP == "M"] <- 10^6
+econ$PROP_MULT[econ$PROPDMGEXP == "B"] <- 10^9
+
+econ$CROP_MULT <- 1
+econ$CROP_MULT[econ$CROPDMGEXP == "K"] <- 10^3
+econ$CROP_MULT[econ$CROPDMGEXP == "M"] <- 10^6
+econ$CROP_MULT[econ$CROPDMGEXP == "B"] <- 10^9
+
+econ$PROP_DAMAGE <- econ$PROPDMG * econ$PROP_MULT
+econ$CROP_DAMAGE <- econ$CROPDMG * econ$CROP_MULT
+
+econ_summary <- aggregate(
+  cbind(PROP_DAMAGE, CROP_DAMAGE) ~ EVTYPE,
+  data = econ,
+  FUN = sum
+)
+
+econ_summary$TOTAL_DAMAGE <- econ_summary$PROP_DAMAGE + econ_summary$CROP_DAMAGE
+
+econ_total <- econ_summary[order(-econ_summary$TOTAL_DAMAGE),]
+```
+
+### Creating a plot of the 10 most harmful events to economics
+
+```{r}
+x1 <- econ_total$EVTYPE[1:10]
+y1 <- econ_total$TOTAL_DAMAGE[1:10]
+
+barplot(
+  y1,
+  names.arg = x1,
+  las = 2,
+  cex.names = 0.7,
+  ylab = "Total Economic Damage in Dollars",
+  main = "Top 10 Events by Economic Damage",
+  col = "red"
+)
+```
+
+#### So, "TORNADO" is the most harmful event to economics
